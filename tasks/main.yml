@@ -1,0 +1,47 @@
+---
+
+- name: Check profile exists
+  command: grep "Name=default" ~/.mozilla/firefox/profiles.ini
+  register: grep_profile
+  changed_when: false
+
+- name: Ensure profile exists
+  shell: firefox -no-remote -CreateProfile default 2>&1
+  register: create_profile 
+  changed_when: grep_profile.rc > 0
+
+- name: Parse profile path
+  shell: sed -n -r "s/Success\x3a created profile '(.+)' at '(.+)'/\2/p" <<< "{{ create_profile.stdout }}" | xargs dirname 
+  register: create_profile_parsed
+  changed_when: false
+
+- set_fact:
+    firefox_profile: '{{ create_profile_parsed.stdout }}'
+
+- name: Install user addons
+  firefox_addon:
+    url: '{{ item.url }}'
+    profile: '{{ firefox_profile }}'
+  with_items: firefox.addons
+
+# selectattr in with_subelements is a workaround since skip_missing is not available until Ansible 2.0
+# http://stackoverflow.com/questions/24616107/ansible-with-subelements-default-value
+# https://github.com/ansible/ansible/issues/9827
+- name: Install user addon prefs
+  lineinfile:
+    dest: '{{ firefox_profile }}/user.js'
+    create: yes
+    regexp: '^user_pref\("{{ item.1.name }}",\s*\S+?\);\s*$'
+    line: 'user_pref("{{ item.1.name }}", {{ ("\"%s\"" | format(item.1.value)) if item.1.value is string else (item.1.value | lower) }});'
+  with_subelements:
+    - '{{ firefox.addons | selectattr("prefs", "defined") | list }}'
+    - prefs
+
+- name: Install user styles
+  lineinfile:
+    dest: '{{ firefox_profile }}/chrome/userChrome.css'
+    create: yes
+    line: '@import url("{{ item }}");'
+    insertbefore: BOF
+  with_items: firefox.styles
+
