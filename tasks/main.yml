@@ -45,3 +45,32 @@
     insertbefore: BOF
   with_items: firefox.styles
 
+# TODO copy over the initial ui customisations
+
+- name: Parse existing ui customisations
+  shell: 
+    grep -q -s browser.uiCustomization.state {{ firefox_profile }}/user.js && exec 3<{{ firefox_profile }}/user.js || 
+    exec 3<{{ firefox_profile }}/prefs.js; 
+    <&3 sed -n -r 's/user_pref\("browser.uiCustomization.state", "(.*)"\);/\1/p' | sed -r 's/\\"/"/g' > /tmp/ui_customisation_0
+  changed_when: false
+
+- name: Prepare modified ui customisations
+  shell: 
+    < /tmp/ui_customisation_{{ item.0 }}
+    jq -c --arg placement {{ item.1.placement }} --arg item {{ item.1.item }} --arg before_item '{{ item.1.before_item | default() }}' 
+    'select(.placements[$placement] | index($item)) // .placements[$placement] |= ([0, index($before_item)] | max) as $before_index | (.[:$before_index] + [$item] + .[$before_index:])' | tee /tmp/ui_customisation_{{ item.0 + 1}}
+  with_indexed_items: firefox.ui_customisations
+  register: ui_customisations_prepared
+  changed_when: false
+
+- debug: msg={{ ui_customisations_prepared.results[-1].stdout }}
+
+# TODO write json string properly escaped
+
+- name: Install modified ui customisations
+  lineinfile:
+    dest: '{{ firefox_profile }}/user.js'
+    create: yes
+    regexp: '^user_pref\("browser.uiCustomization.state",\s*\S+?\);\s*$'
+    line: 'user_pref("browser.uiCustomization.state", {{ ui_customisations_prepared.results[-1].stdout }});'
+
