@@ -1,0 +1,51 @@
+{
+  "placements": {
+    "PanelUI-contents": [
+      "edit-controls",
+      "zoom-controls",
+      "new-window-button",
+      "privatebrowsing-button",
+      "save-page-button",
+      "print-button",
+      "history-panelmenu",
+      "fullscreen-button",
+      "find-button",
+      "preferences-button",
+      "add-ons-button",
+      "developer-button"
+    ],
+    "addon-bar": [
+      "addonbar-closebutton",
+      "status-bar"
+    ],
+    "PersonalToolbar": [
+      "personal-bookmarks"
+    ],
+    "nav-bar": [
+      "urlbar-container",
+      "search-container",
+      "bookmarks-menu-button",
+      "pocket-button",
+      "downloads-button",
+      "home-button",
+      "loop-button"
+    ],
+    "TabsToolbar": [
+      "tabbrowser-tabs",
+      "new-tab-button",
+      "alltabs-button"
+    ],
+    "toolbar-menubar": [
+      "menubar-items"
+    ]
+  },
+  "seen": [],
+  "dirtyAreaCache": [
+    "PersonalToolbar",
+    "nav-bar",
+    "TabsToolbar",
+    "toolbar-menubar"
+  ],
+  "currentVersion": 4,
+  "newElementCount": 0
+}
