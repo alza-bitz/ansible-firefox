@@ -1,5 +1,9 @@
 ---
 
+- assert:
+    that: firefox is defined
+    msg: Unable to proceed, required var 'firefox' is not defined
+
 - name: Check profile exists
   command: grep -s "Name=default" ~/.mozilla/firefox/profiles.ini
   register: grep_profile
@@ -24,7 +28,7 @@
   firefox_addon:
     url: '{{ item.url }}'
     profile: '{{ firefox_profile }}'
-  with_items: firefox.addons
+  with_items: firefox.addons | default([]) | select('defined') | list
 
 # selectattr in with_subelements is a workaround since skip_missing is not available until Ansible 2.0
 # http://stackoverflow.com/questions/24616107/ansible-with-subelements-default-value
@@ -36,79 +40,17 @@
     regexp: '^user_pref\("{{ item.1.name }}",\s*\S+?\);\s*$'
     line: 'user_pref("{{ item.1.name }}", {{ ("\"%s\"" | format(item.1.value)) if item.1.value is string else (item.1.value | lower) }});'
   with_subelements:
-    - '{{ firefox.addons | selectattr("prefs", "defined") | list }}'
+    - firefox.addons | default([]) | selectattr('prefs', 'defined') | list
     - prefs
 
 - name: Install user styles
   lineinfile:
     dest: '{{ firefox_profile }}/chrome/userChrome.css'
     create: yes
-    line: '@import url("{{ item }}");'
+    line: '@import url("{{ item }}.css");'
     insertbefore: BOF
-  with_items: firefox.styles
+  with_items: firefox.styles | default([]) | select('string') | list
 
-# TODO if there's no ui customisation to add, remove or move, then skip everything below
-
-# TODO use proper mktemp dir and clean up afterwards
-
-# TODO format to single line?
-- name: Copy initial ui customisation
-  copy: src=ui_customisation.json dest=/tmp/ui_customisation_0
-  changed_when: false
-
-- name: Parse existing ui customisation
-  shell: < {{ item }} sed -n -r 's/user_pref\("browser.uiCustomization.state", "(.*)"\);/\1/p'
-  with_items:
-    - '{{ firefox_profile }}/user.js'
-    - '{{ firefox_profile }}/prefs.js'
-  register: ui_customisation_parsed
-  changed_when: false
-  failed_when: false
-
-- name: Prepare existing ui customisation
-  copy: content={{ item.stdout | replace('\\"', '"') }} dest=/tmp/ui_customisation_0
-  with_items: ui_customisation_parsed.results | rejectattr('stdout', 'equalto', '') | list
-  changed_when: false
-
-- name: Prepare ui customisation items to be added
-  shell: 
-    < /tmp/ui_customisation_{{ item.0 }}
-    jq -c --arg placement {{ item.1.placement }} --arg item {{ item.1.item }} --arg before '{{ item.1.before | default() }}' 
-    'select(.placements[$placement] | index($item)) // .placements[$placement] |= ([0, index($before)] | max) as $before_index | (.[:$before_index] + [$item] + .[$before_index:])' | 
-    tee /tmp/ui_customisation_{{ item.0 + 1}}
-  with_indexed_items: firefox.ui_customisation.add | default([])
-  register: ui_customisation_prepared_add
-  changed_when: false
-
-- copy: content={{ ui_customisation_prepared_add.results[-1].stdout }} dest=/tmp/ui_customisation_0
-  changed_when: false
-  when: ui_customisation_prepared_add.results is defined
-
-- name: Prepare ui customisation items to be removed
-  shell: 
-    < /tmp/ui_customisation_{{ item.0 }}
-    jq -c --arg placement {{ item.1.placement }} --arg item {{ item.1.item }}
-    '.placements[$placement] |= (. - [$item])' 
-    | tee /tmp/ui_customisation_{{ item.0 + 1}}
-  with_indexed_items: firefox.ui_customisation.remove | default([])
-  register: ui_customisation_prepared_remove
-  changed_when: false
-
-- copy: content={{ ui_customisation_prepared_remove.results[-1].stdout }} dest=/tmp/ui_customisation_0
-  changed_when: false
-  when: ui_customisation_prepared_remove.results is defined
-
-- name: Read modified ui customisation
-  command: cat /tmp/ui_customisation_0
-  register: ui_customisation_prepared
-  changed_when: false
-
-# TODO write json string properly escaped
-
-- name: Install modified ui customisation
-  lineinfile:
-    dest: '{{ firefox_profile }}/user.js'
-    create: yes
-    regexp: '^user_pref\("browser.uiCustomization.state",\s*\S+?\);\s*$'
-    line: 'user_pref("browser.uiCustomization.state", "{{ ui_customisation_prepared.stdout | replace("\"", "\\\"") }}");'
+- include: ui_customisation.yml
+  when: firefox.ui_customisation is defined
 

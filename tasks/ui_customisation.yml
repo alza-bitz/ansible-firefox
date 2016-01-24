@@ -1,0 +1,90 @@
+---
+
+- command: mktemp -d
+  register: mktemp
+  changed_when: false
+
+- name: Copy initial ui customisation
+  copy: src=ui_customisation.json dest={{ mktemp.stdout }}/
+  changed_when: false
+
+- name: Prepare initial ui customisation
+  shell: < {{ mktemp.stdout }}/ui_customisation.json jq -c '.' > {{ mktemp.stdout }}/ui_customisation
+  changed_when: false
+
+# TODO use with_files instead of with_items?
+- name: Parse existing ui customisation
+  shell: < {{ item }} sed -n -r 's/user_pref\("browser.uiCustomization.state", "(.*)"\);/\1/p'
+  with_items:
+    - '{{ firefox_profile }}/user.js'
+    - '{{ firefox_profile }}/prefs.js'
+  register: ui_customisation_parsed
+  changed_when: false
+  failed_when: false
+
+- name: Prepare existing ui customisation
+  copy: content={{ item.stdout | replace('\\"', '"') }} dest={{ mktemp.stdout }}/ui_customisation
+  with_items: ui_customisation_parsed.results | rejectattr('stdout', 'equalto', '') | list
+  changed_when: false
+
+- name: Prepare modified ui customisation
+  command: cp {{ mktemp.stdout }}/ui_customisation {{ mktemp.stdout }}/ui_customisation_0
+  changed_when: false
+
+- name: Prepare ui customisation items to be added
+  shell: 
+    < {{ mktemp.stdout }}/ui_customisation_{{ item.0 }}
+    jq -c --arg placement {{ item.1.placement }} --arg item {{ item.1.item }} --arg before '{{ item.1.before | default() }}' 
+    'select(.placements[$placement] | index($item)) // .placements[$placement] |= ([0, index($before)] | max) as $before_index | (.[:$before_index] + [$item] + .[$before_index:])' | 
+    tee {{ mktemp.stdout }}/ui_customisation_{{ item.0 + 1}}
+  with_indexed_items: 
+    firefox.ui_customisation.add if 
+    firefox.ui_customisation is defined and firefox.ui_customisation.add is defined and firefox.ui_customisation.add.0 is defined 
+    else []
+  register: ui_customisation_prepared_add
+  changed_when: false
+
+- copy: content={{ ui_customisation_prepared_add.results[-1].stdout }} dest={{ mktemp.stdout }}/ui_customisation_0
+  changed_when: false
+  when: ui_customisation_prepared_add.results is defined
+
+- name: Prepare ui customisation items to be removed
+  shell: 
+    < {{ mktemp.stdout }}/ui_customisation_{{ item.0 }}
+    jq -c --arg placement {{ item.1.placement }} --arg item {{ item.1.item }}
+    '.placements[$placement] |= (. - [$item])' |
+    tee {{ mktemp.stdout }}/ui_customisation_{{ item.0 + 1}}
+  with_indexed_items: 
+    firefox.ui_customisation.remove if 
+    firefox.ui_customisation is defined and firefox.ui_customisation.remove is defined and firefox.ui_customisation.remove.0 is defined 
+    else []
+  register: ui_customisation_prepared_remove
+  changed_when: false
+
+- copy: content={{ ui_customisation_prepared_remove.results[-1].stdout }} dest={{ mktemp.stdout }}/ui_customisation_0
+  changed_when: false
+  when: ui_customisation_prepared_remove.results is defined
+
+- name: Compare modified ui customisation
+  command: cmp -s {{ mktemp.stdout }}/ui_customisation {{ mktemp.stdout }}/ui_customisation_0
+  register: ui_customisation_cmp
+  changed_when: false
+  failed_when: ui_customisation_cmp.rc > 1
+
+- name: Read modified ui customisation
+  command: cat {{ mktemp.stdout }}/ui_customisation_0
+  register: ui_customisation_prepared
+  changed_when: false
+  when: ui_customisation_cmp.rc == 1
+
+- name: Install modified ui customisation
+  lineinfile:
+    dest: '{{ firefox_profile }}/user.js'
+    create: yes
+    regexp: '^user_pref\("browser.uiCustomization.state",\s*\S+?\);\s*$'
+    line: 'user_pref("browser.uiCustomization.state", "{{ ui_customisation_prepared.stdout | replace("\"", "\\\\\"") }}");'
+  when: ui_customisation_cmp.rc == 1
+
+- file: name={{ mktemp.stdout }} state=absent
+  changed_when: false
+
