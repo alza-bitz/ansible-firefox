@@ -23,8 +23,8 @@
   failed_when: false
 
 - name: Prepare existing ui customisation
-  copy: content={{ item.stdout | replace('\\"', '"') }} dest={{ mktemp.stdout }}/ui_customisation
-  with_items: ui_customisation_parsed.results | rejectattr('stdout', 'equalto', '') | list
+  copy: content={{ item | replace('\\"', '"') }} dest={{ mktemp.stdout }}/ui_customisation
+  with_items: ui_customisation_parsed.results | map(attribute='stdout') | reject('equalto', '') | list
   changed_when: false
 
 - name: Prepare modified ui customisation

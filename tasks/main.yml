@@ -43,6 +43,14 @@
     - firefox.addons | default([]) | selectattr('prefs', 'defined') | list
     - prefs
 
+- name: Install user prefs
+  lineinfile:
+    dest: '{{ firefox_profile }}/user.js'
+    create: yes
+    regexp: '^user_pref\("{{ item.name }}",\s*\S+?\);\s*$'
+    line: 'user_pref("{{ item.name }}", {{ ("\"%s\"" | format(item.value)) if item.value is string else (item.value | lower) }});'
+  with_items: firefox.prefs | default([]) | select('defined') | list
+
 - name: Install user styles
   lineinfile:
     dest: '{{ firefox_profile }}/chrome/userChrome.css'

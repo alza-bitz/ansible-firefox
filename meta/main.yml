@@ -1,2 +1,2 @@
 dependencies:
-  - { role: firefox_addon }
+  - { role: ansible-firefox-addon }
