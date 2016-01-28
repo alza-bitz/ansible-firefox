@@ -4,6 +4,13 @@
     that: firefox is defined
     msg: Unable to proceed, required var 'firefox' is not defined
 
+- name: Install required packages
+  yum: name={{ item }}
+  with_items:
+    - firefox
+    - jq    
+  sudo: yes
+
 - name: Check profile exists
   command: grep -s "Name=default" ~/.mozilla/firefox/profiles.ini
   register: grep_profile
