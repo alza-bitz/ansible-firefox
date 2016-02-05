@@ -1,2 +1,14 @@
+---
+galaxy_info:
+  author: Alex Coyle
+  description: A role for configuring Firefox, including addons, preferences and css styles
+  license: BSD
+  min_ansible_version: 1.9
+  platforms:
+  - name: GenericLinux
+    versions:
+    - any
+  categories:
+  - web
 dependencies:
-  - { role: ansible-firefox-addon }
+  - { role: alzadude.firefox-addon }
