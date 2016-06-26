@@ -46,7 +46,7 @@
 
 - copy: content={{ ui_customisation_prepared_add.results[-1].stdout }} dest={{ mktemp.stdout }}/ui_customisation_0
   changed_when: false
-  when: ui_customisation_prepared_add.results is defined
+  when: ui_customisation_prepared_add.results is defined and ui_customisation_prepared_add.results | length > 0
 
 - name: Prepare ui customisation items to be removed
   shell: 
@@ -63,7 +63,7 @@
 
 - copy: content={{ ui_customisation_prepared_remove.results[-1].stdout }} dest={{ mktemp.stdout }}/ui_customisation_0
   changed_when: false
-  when: ui_customisation_prepared_remove.results is defined
+  when: ui_customisation_prepared_remove.results is defined and ui_customisation_prepared_remove.results | length > 0
 
 - name: Compare modified ui customisation
   command: cmp -s {{ mktemp.stdout }}/ui_customisation {{ mktemp.stdout }}/ui_customisation_0
@@ -82,7 +82,7 @@
     dest: '{{ firefox_profile }}/user.js'
     create: yes
     regexp: '^user_pref\("browser.uiCustomization.state",\s*\S+?\);\s*$'
-    line: 'user_pref("browser.uiCustomization.state", "{{ ui_customisation_prepared.stdout | replace("\"", "\\\\\"") }}");'
+    line: "user_pref(\"browser.uiCustomization.state\", \"{{ ui_customisation_prepared.stdout | replace('\"', '\\\"') }}\");"
   when: ui_customisation_cmp.rc == 1
 
 - file: name={{ mktemp.stdout }} state=absent
