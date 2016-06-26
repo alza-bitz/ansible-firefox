@@ -45,7 +45,7 @@
     dest: '{{ firefox_profile }}/user.js'
     create: yes
     regexp: '^user_pref\("{{ item.1.name }}",\s*\S+?\);\s*$'
-    line: 'user_pref("{{ item.1.name }}", {{ ("\"%s\"" | format(item.1.value)) if item.1.value is string else (item.1.value | lower) }});'
+    line: "user_pref(\"{{ item.1.name }}\", {{ ('\"%s\"' | format(item.1.value)) if item.1.value is string else (item.1.value | lower) }});"
   with_subelements:
     - firefox.addons | default([]) | selectattr('prefs', 'defined') | list
     - prefs
@@ -55,7 +55,7 @@
     dest: '{{ firefox_profile }}/user.js'
     create: yes
     regexp: '^user_pref\("{{ item.name }}",\s*\S+?\);\s*$'
-    line: 'user_pref("{{ item.name }}", {{ ("\"%s\"" | format(item.value)) if item.value is string else (item.value | lower) }});'
+    line: "user_pref(\"{{ item.name }}\", {{ ('\"%s\"' | format(item.value)) if item.value is string else (item.value | lower) }});"
   with_items: firefox.prefs | default([]) | select('defined') | list
 
 - name: Install user styles
