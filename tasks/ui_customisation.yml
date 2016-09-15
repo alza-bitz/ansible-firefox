@@ -81,7 +81,7 @@
   lineinfile:
     dest: '{{ firefox_profile }}/user.js'
     create: yes
-    regexp: '^user_pref\("browser.uiCustomization.state",\s*\S+?\);\s*$'
+    regexp: '^user_pref\("browser.uiCustomization.state", ".*"\);$'
     line: "user_pref(\"browser.uiCustomization.state\", \"{{ ui_customisation_prepared.stdout | replace('\"', '\\\"') }}\");"
   when: ui_customisation_cmp.rc == 1
 
