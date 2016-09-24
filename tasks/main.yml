@@ -5,7 +5,7 @@
     msg: Unable to proceed, required var 'firefox' is not defined
 
 - name: Install required packages
-  yum: name={{ item }}
+  package: name={{ item }}
   with_items:
     - firefox
     - jq    
