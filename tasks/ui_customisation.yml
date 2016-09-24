@@ -24,7 +24,7 @@
 
 - name: Prepare existing ui customisation
   copy: content={{ item | replace('\\"', '"') }} dest={{ mktemp.stdout }}/ui_customisation
-  with_items: ui_customisation_parsed.results | map(attribute='stdout') | reject('equalto', '') | list
+  with_items: "{{ ui_customisation_parsed.results | map(attribute='stdout') | reject('equalto', '') | list }}"
   changed_when: false
 
 - name: Prepare modified ui customisation
@@ -38,9 +38,9 @@
     'select(.placements[$placement] | index($item)) // .placements[$placement] |= ([0, index($before)] | max) as $before_index | (.[:$before_index] + [$item] + .[$before_index:])' | 
     tee {{ mktemp.stdout }}/ui_customisation_{{ item.0 + 1}}
   with_indexed_items: 
-    firefox.ui_customisation.add if 
+    "{{ firefox.ui_customisation.add if 
     firefox.ui_customisation is defined and firefox.ui_customisation.add is defined and firefox.ui_customisation.add.0 is defined 
-    else []
+    else [] }}"
   register: ui_customisation_prepared_add
   changed_when: false
 
@@ -55,9 +55,9 @@
     '.placements[$placement] |= (. - [$item])' |
     tee {{ mktemp.stdout }}/ui_customisation_{{ item.0 + 1}}
   with_indexed_items: 
-    firefox.ui_customisation.remove if 
+    "{{ firefox.ui_customisation.remove if 
     firefox.ui_customisation is defined and firefox.ui_customisation.remove is defined and firefox.ui_customisation.remove.0 is defined 
-    else []
+    else [] }}"
   register: ui_customisation_prepared_remove
   changed_when: false
 

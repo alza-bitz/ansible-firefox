@@ -5,11 +5,11 @@
     msg: Unable to proceed, required var 'firefox' is not defined
 
 - name: Install required packages
-  yum: name={{ item }}
+  package: name={{ item }}
   with_items:
     - firefox
     - jq    
-  sudo: yes
+  become: yes
 
 - name: Check profile exists
   command: grep -s "Name=default" ~/.mozilla/firefox/profiles.ini
@@ -35,7 +35,7 @@
   firefox_addon:
     url: '{{ item.url }}'
     profile: '{{ firefox_profile }}'
-  with_items: firefox.addons | default([]) | select('defined') | list
+  with_items: "{{ firefox.addons | default([]) | select('defined') | list }}"
 
 # selectattr in with_subelements is a workaround since skip_missing is not available until Ansible 2.0
 # http://stackoverflow.com/questions/24616107/ansible-with-subelements-default-value
@@ -47,7 +47,7 @@
     regexp: '^user_pref\("{{ item.1.name }}",\s*\S+?\);\s*$'
     line: "user_pref(\"{{ item.1.name }}\", {{ ('\"%s\"' | format(item.1.value)) if item.1.value is string else (item.1.value | lower) }});"
   with_subelements:
-    - firefox.addons | default([]) | selectattr('prefs', 'defined') | list
+    - "{{ firefox.addons | default([]) | selectattr('prefs', 'defined') | list }}"
     - prefs
 
 - name: Install user prefs
@@ -56,7 +56,7 @@
     create: yes
     regexp: '^user_pref\("{{ item.name }}",\s*\S+?\);\s*$'
     line: "user_pref(\"{{ item.name }}\", {{ ('\"%s\"' | format(item.value)) if item.value is string else (item.value | lower) }});"
-  with_items: firefox.prefs | default([]) | select('defined') | list
+  with_items: "{{ firefox.prefs | default([]) | select('defined') | list }}"
 
 - name: Install user styles
   lineinfile:
@@ -64,7 +64,7 @@
     create: yes
     line: '@import url("{{ item }}.css");'
     insertbefore: BOF
-  with_items: firefox.styles | default([]) | select('string') | list
+  with_items: "{{ firefox.styles | default([]) | select('string') | list }}"
 
 - include: ui_customisation.yml
   when: firefox.ui_customisation is defined
