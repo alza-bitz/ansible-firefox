@@ -1,0 +1,15 @@
+---
+
+- hosts: container
+  remote_user: test
+
+  vars:
+    firefox:
+      addons:
+        - url: https://addons.mozilla.org/en-US/firefox/addon/adblock-plus
+
+  roles:
+    - ansible-firefox
+
+  environment:
+    - DISPLAY: ':1'

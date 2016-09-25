@@ -9,6 +9,7 @@
   with_items:
     - firefox
     - jq    
+    - unzip
   sudo: yes
 
 - name: Check profile exists
@@ -22,14 +23,8 @@
   register: create_profile 
   changed_when: grep_profile.rc > 0
 
-# TODO use bash regex as used in firefox_addon, instead of sed?
-- name: Parse profile path
-  shell: sed -n -r "s/Success\x3a created profile '(.+)' at '(.+)'/\2/p" <<< "{{ create_profile.stdout }}" | xargs dirname 
-  register: create_profile_parsed
-  changed_when: false
-
 - set_fact:
-    firefox_profile: '{{ create_profile_parsed.stdout }}'
+    firefox_profile: "{{ create_profile.stdout | regex_replace(\"Success: created profile '(.+)' at '(.+)'\", \"\\2\") | dirname }}"
 
 - name: Install user addons
   firefox_addon:

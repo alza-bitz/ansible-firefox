@@ -1,0 +1,16 @@
+---
+
+- hosts: container
+  remote_user: test
+
+  vars:
+    firefox:
+      prefs:
+        - name: some.string.pref
+          value: some-string-pref-value
+
+  roles:
+    - ansible-firefox
+
+  environment:
+    - DISPLAY: ':1'

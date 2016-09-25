@@ -1,0 +1,17 @@
+---
+
+- hosts: container
+  remote_user: test
+
+  vars:
+    firefox:
+      ui_customisation:
+        remove:
+          - placement: nav-bar
+            item: loop-button
+
+  roles:
+    - ansible-firefox
+
+  environment:
+    - DISPLAY: ':1'
