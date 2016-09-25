@@ -1,6 +1,8 @@
 ansible-firefox
 ===============
 
+[![Build Status](https://travis-ci.org/alzadude/ansible-firefox.svg?branch=master)](https://travis-ci.org/alzadude/ansible-firefox)
+
 A role for configuring Firefox, including addons, preferences and css styles.
 
 Notes:
@@ -20,7 +22,7 @@ Role Variables
 ```
 firefox:
   addons:
-    - url: <url-of-addon-page-on-addons.mozilla.org> e.g. https://addons.mozilla.org/en-US/firefox/addon/adwaita
+    - url: <addon-page-url-at-addons.mozilla.org> e.g. https://addons.mozilla.org/en-US/firefox/addon/adwaita, or <addon-xpi-url>
       prefs:
         - name: <name-of-pref-in-prefs.js> e.g. extensions.gnome-theme-tweak.relief-buttons
           value: <value-of-pref>
@@ -36,7 +38,7 @@ firefox:
 ```
 firefox:
   styles:
-    - <url-of-style-page-on-userstyles.org> e.g. https://userstyles.org/styles/96733/headerbar-style-for-gnome-3-16
+    - <style-page-url-at-userstyles.org> e.g. https://userstyles.org/styles/96733/headerbar-style-for-gnome-3-16
 ```
 ### For Customising the UI
 ```
@@ -123,5 +125,5 @@ ansible-playbook -i hosts playbook.yml
 License
 -------
 
-BSD
+MIT
 
